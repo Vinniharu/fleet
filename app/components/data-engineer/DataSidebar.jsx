@@ -38,27 +38,27 @@ export default function DataSidebar() {
   const DataSidebarLinks = [
     {
       label: "Dashboard",
-      href: "/data-collection/dashboard",
+      href: "/data-engineer/dashboard",
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
       label: "Create Flight Logs",
-      href: "/data-collection/create-flight-logs",
+      href: "/data-engineer/create-flight-logs",
       icon: <PlaneTakeoff className="w-5 h-5" />,
     },
     {
       label: "View Flight Logs",
-      href: "/data-collection/view-flight-logs",
+      href: "/data-engineer/view-flight-logs",
       icon: <ListFilter className="w-5 h-5" />,
     },
     {
       label: "View Telemetry",
-      href: "/data-collection/view-telemetry",
+      href: "/data-engineer/view-telemetry",
       icon: <LineChart className="w-5 h-5" />,
     },
     {
       label: "Visualize Data",
-      href: "/data-collection/visualize-data",
+      href: "/data-engineer/visualize-data",
       icon: <BarChart className="w-5 h-5" />,
     },
   ];

@@ -2,50 +2,52 @@
 import React, { useState } from 'react';
 
 const FlightLogForm = ({ onSubmit, initialData = {} }) => {
+  
   // Form sections
   const SECTIONS = ['Basic Information', 'Weather & Environment', 'Technical Data'];
   
   // State
   const [currentSection, setCurrentSection] = useState(0);
   const [formData, setFormData] = useState({
-    timestamp: initialData.timestamp || '',
+    flightTimestamp: initialData.flightTimestamp || new Date().toISOString().slice(0, 16),
     missionCoordinator: initialData.missionCoordinator || '',
-    nameOfAircraft: initialData.nameOfAircraft || '',
-    altitudeM: initialData.altitudeM || '',
-    windSpeedMS: initialData.windSpeedMS || '',
-    flightDistanceKm: initialData.flightDistanceKm || '',
-    batteryTakeoffVoltage3s: initialData.batteryTakeoffVoltage3s || '',
-    batteryTakeoffVoltage7s: initialData.batteryTakeoffVoltage7s || '',
-    batteryTakeoffVoltage14s: initialData.batteryTakeoffVoltage14s || '',
-    batteryLandingVoltage3s: initialData.batteryLandingVoltage3s || '',
-    batteryLandingVoltage7s: initialData.batteryLandingVoltage7s || '', 
-    batteryLandingVoltage14s: initialData.batteryLandingVoltage14s || '',
+    aircraftName: initialData.aircraftName || '',
+    altitudeM: initialData.altitudeM || 0,
+    windSpeedMps: initialData.windSpeedMps || 0,
+    flightDistanceKm: initialData.flightDistanceKm || 0,
+    batteryTakeoff3sV: initialData.batteryTakeoff3sV || 0,
+    batteryTakeoff7sV: initialData.batteryTakeoff7sV || 0,
+    batteryTakeoff14sV: initialData.batteryTakeoff14sV || 0,
+    batteryLanding3sV: initialData.batteryLanding3sV || 0,
+    batteryLanding7sV: initialData.batteryLanding7sV || 0,
+    batteryLanding14sV: initialData.batteryLanding14sV || 0,
     battery3sQty: initialData.battery3sQty || 0,
     battery7sQty: initialData.battery7sQty || 0,
     battery14sQty: initialData.battery14sQty || 0,
-    batteryHealth: initialData.batteryHealth || '',
-    droneOverallSystemHealthStatus: initialData.droneOverallSystemHealthStatus || '',
+    batteryHealth: initialData.batteryHealth || 'Good',
+    systemHealthStatus: initialData.systemHealthStatus || 'Nominal',
     weatherConditions: initialData.weatherConditions || '',
     windConditions: initialData.windConditions || '',
-    temperatureC: initialData.temperatureC || '',
-    year: initialData.year || new Date().getFullYear(),
-    month: initialData.month || '',
-    week: initialData.week || '',
-    flightTime: initialData.flightTime || '',
+    temperatureC: initialData.temperatureC || 0,
+    flightYear: initialData.flightYear || new Date().getFullYear(),
+    flightMonth: initialData.flightMonth || 1,
+    flightWeek: initialData.flightWeek || 1,
+    flightTimeMinutes: initialData.flightTimeMinutes || 0,
     missionObjective: initialData.missionObjective || '',
     description: initialData.description || '',
-    fuelLevelL: initialData.fuelLevelL || '',
-    weightKgBefore: initialData.weightKg?.before || '',
-    weightKgAfter: initialData.weightKg?.after || '',
-    fuelConsumptionL: initialData.fuelConsumptionL || '',
-    status: initialData.status || 'Pending',
+    status: initialData.status || 'Planned',
     comment: initialData.comment || '',
+    fuelLevelL: initialData.fuelLevelL || '',
+    fuelConsumptionL: initialData.fuelConsumptionL || '',
   });
 
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]:  value
+    }));
   };
 
   // Navigate between sections
@@ -64,24 +66,34 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
   };
 
   // Submit form
-  const handleSubmit = (e) => {
-    if (e) e.preventDefault();
-    
-    // Prepare the proper weight object structure
-    const formattedData = {
-      ...formData,
-      weightKg: {
-        before: parseFloat(formData.weightKgBefore),
-        after: parseFloat(formData.weightKgAfter)
-      }
-    };
-    
-    // Remove the separate weight properties
-    delete formattedData.weightKgBefore;
-    delete formattedData.weightKgAfter;
-    
-    onSubmit(formattedData);
+  const handleSubmit = () => {
+    onSubmit(formData);
+    console.log(formData);
   };
+
+  // Generate year options (current year and 5 years back)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
+
+  // Generate month options
+  const monthOptions = [
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" }
+  ];
+
+  // Generate week options (1-52)
+  const weekOptions = Array.from({ length: 52 }, (_, i) => i + 1);
+
 
   // Render form section
   const renderFormSection = () => {
@@ -92,12 +104,12 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
             <h3 className="text-xl font-semibold mb-6 pb-2 border-b-2 border-yellow-500 inline-block">Basic Flight Information</h3>
             
             <div className="mb-4">
-              <label htmlFor="timestamp" className="block text-gray-300 font-medium mb-2">Timestamp</label>
+              <label htmlFor="flightTimestamp" className="block text-gray-300 font-medium mb-2">Flight Date & Time</label>
               <input
                 type="datetime-local"
-                id="timestamp"
-                name="timestamp"
-                value={formData.timestamp ? formData.timestamp.slice(0, 16) : ''}
+                id="flightTimestamp"
+                name="flightTimestamp"
+                value={formData.flightTimestamp.split('Z')[0]}
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
@@ -118,12 +130,12 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
             </div>
             
             <div className="mb-4">
-              <label htmlFor="nameOfAircraft" className="block text-gray-300 font-medium mb-2">Aircraft Name</label>
+              <label htmlFor="aircraftName" className="block text-gray-300 font-medium mb-2">Aircraft Name</label>
               <input
                 type="text"
-                id="nameOfAircraft"
-                name="nameOfAircraft"
-                value={formData.nameOfAircraft}
+                id="aircraftName"
+                name="aircraftName"
+                value={formData.aircraftName}
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
@@ -132,54 +144,65 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label htmlFor="year" className="block text-gray-300 font-medium mb-2">Year</label>
-                <input
-                  type="number"
-                  id="year"
-                  name="year"
-                  value={formData.year}
+                <label htmlFor="flightYear" className="block text-gray-300 font-medium mb-2">Year</label>
+                <select
+                  id="flightYear"
+                  name="flightYear"
+                  value={formData.flightYear}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
-                />
+                >
+                  {yearOptions.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
               </div>
               
               <div>
-                <label htmlFor="month" className="block text-gray-300 font-medium mb-2">Month</label>
-                <input
-                  type="text"
-                  id="month"
-                  name="month"
-                  value={formData.month}
+                <label htmlFor="flightMonth" className="block text-gray-300 font-medium mb-2">Month</label>
+                <select
+                  id="flightMonth"
+                  name="flightMonth"
+                  value={formData.flightMonth}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
-                />
+                >
+                  <option value="">Select month</option>
+                  {monthOptions.map(month => (
+                    <option key={month.value} value={month.value}>{month.label}</option>
+                  ))}
+                </select>
               </div>
               
               <div>
-                <label htmlFor="week" className="block text-gray-300 font-medium mb-2">Week</label>
-                <input
-                  type="number"
-                  id="week"
-                  name="week"
-                  value={formData.week}
+                <label htmlFor="flightWeek" className="block text-gray-300 font-medium mb-2">Week</label>
+                <select
+                  id="flightWeek"
+                  name="flightWeek"
+                  value={formData.flightWeek}
                   onChange={handleChange}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
-                />
+                >
+                  <option value="">Select week</option>
+                  {weekOptions.map(week => (
+                    <option key={week} value={week}>{week}</option>
+                  ))}
+                </select>
               </div>
             </div>
             
             <div className="mb-4">
-              <label htmlFor="flightTime" className="block text-gray-300 font-medium mb-2">Flight Time (HH:MM:SS)</label>
+              <label htmlFor="flightTimeMinutes" className="block text-gray-300 font-medium mb-2">Flight Time (minutes)</label>
               <input
-                type="text"
-                id="flightTime"
-                name="flightTime"
-                value={formData.flightTime}
+                type="number"
+                id="flightTimeMinutes"
+                name="flightTimeMinutes"
+                value={formData.flightTimeMinutes}
                 onChange={handleChange}
-                placeholder="00:00:00"
-                required
+                min="0"
+                step="1"
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
               />
             </div>
@@ -198,18 +221,6 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
             </div>
             
             <div className="mb-4">
-              <label htmlFor="description" className="block text-gray-300 font-medium mb-2">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="3"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
-              />
-            </div>
-            
-            <div className="mb-4">
               <label htmlFor="status" className="block text-gray-300 font-medium mb-2">Status</label>
               <select
                 id="status"
@@ -219,10 +230,11 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
                 required
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
               >
-                <option value="Pending">Pending</option>
+                <option value="Planned">Planned</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
                 <option value="Aborted">Aborted</option>
+                <option value="Cancelled">Cancelled</option>
               </select>
             </div>
           </div>
@@ -248,13 +260,13 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
             </div>
             
             <div className="mb-4">
-              <label htmlFor="windSpeedMS" className="block text-gray-300 font-medium mb-2">Wind Speed (m/s)</label>
+              <label htmlFor="windSpeedMps" className="block text-gray-300 font-medium mb-2">Wind Speed (m/s)</label>
               <input
                 type="number"
                 step="0.1"
-                id="windSpeedMS"
-                name="windSpeedMS"
-                value={formData.windSpeedMS}
+                id="windSpeedMps"
+                name="windSpeedMps"
+                value={formData.windSpeedMps}
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
@@ -344,26 +356,26 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label htmlFor="batteryTakeoffVoltage3s" className="block text-gray-300 font-medium mb-2">3S Takeoff Voltage (V)</label>
+                  <label htmlFor="batteryTakeoff3sV" className="block text-gray-300 font-medium mb-2">3S Takeoff Voltage (V)</label>
                   <input
                     type="number"
                     step="0.1"
-                    id="batteryTakeoffVoltage3s"
-                    name="batteryTakeoffVoltage3s"
-                    value={formData.batteryTakeoffVoltage3s}
+                    id="batteryTakeoff3sV"
+                    name="batteryTakeoff3sV"
+                    value={formData.batteryTakeoff3sV}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
                 </div>
                 
                 <div>
-                  <label htmlFor="batteryLandingVoltage3s" className="block text-gray-300 font-medium mb-2">3S Landing Voltage (V)</label>
+                  <label htmlFor="batteryLanding3sV" className="block text-gray-300 font-medium mb-2">3S Landing Voltage (V)</label>
                   <input
                     type="number"
                     step="0.1"
-                    id="batteryLandingVoltage3s"
-                    name="batteryLandingVoltage3s"
-                    value={formData.batteryLandingVoltage3s}
+                    id="batteryLanding3sV"
+                    name="batteryLanding3sV"
+                    value={formData.batteryLanding3sV}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
@@ -384,26 +396,26 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label htmlFor="batteryTakeoffVoltage7s" className="block text-gray-300 font-medium mb-2">7S Takeoff Voltage (V)</label>
+                  <label htmlFor="batteryTakeoff7sV" className="block text-gray-300 font-medium mb-2">7S Takeoff Voltage (V)</label>
                   <input
                     type="number"
                     step="0.1"
-                    id="batteryTakeoffVoltage7s"
-                    name="batteryTakeoffVoltage7s"
-                    value={formData.batteryTakeoffVoltage7s}
+                    id="batteryTakeoff7sV"
+                    name="batteryTakeoff7sV"
+                    value={formData.batteryTakeoff7sV}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
                 </div>
                 
                 <div>
-                  <label htmlFor="batteryLandingVoltage7s" className="block text-gray-300 font-medium mb-2">7S Landing Voltage (V)</label>
+                  <label htmlFor="batteryLanding7sV" className="block text-gray-300 font-medium mb-2">7S Landing Voltage (V)</label>
                   <input
                     type="number"
                     step="0.1"
-                    id="batteryLandingVoltage7s"
-                    name="batteryLandingVoltage7s"
-                    value={formData.batteryLandingVoltage7s}
+                    id="batteryLanding7sV"
+                    name="batteryLanding7sV"
+                    value={formData.batteryLanding7sV}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
@@ -424,26 +436,26 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label htmlFor="batteryTakeoffVoltage14s" className="block text-gray-300 font-medium mb-2">14S Takeoff Voltage (V)</label>
+                  <label htmlFor="batteryTakeoff14sV" className="block text-gray-300 font-medium mb-2">14S Takeoff Voltage (V)</label>
                   <input
                     type="number"
                     step="0.1"
-                    id="batteryTakeoffVoltage14s"
-                    name="batteryTakeoffVoltage14s"
-                    value={formData.batteryTakeoffVoltage14s}
+                    id="batteryTakeoff14sV"
+                    name="batteryTakeoff14sV"
+                    value={formData.batteryTakeoff14sV}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
                 </div>
                 
                 <div>
-                  <label htmlFor="batteryLandingVoltage14s" className="block text-gray-300 font-medium mb-2">14S Landing Voltage (V)</label>
+                  <label htmlFor="batteryLanding14sV" className="block text-gray-300 font-medium mb-2">14S Landing Voltage (V)</label>
                   <input
                     type="number"
                     step="0.1"
-                    id="batteryLandingVoltage14s"
-                    name="batteryLandingVoltage14s"
-                    value={formData.batteryLandingVoltage14s}
+                    id="batteryLanding14sV"
+                    name="batteryLanding14sV"
+                    value={formData.batteryLanding14sV}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
@@ -485,11 +497,11 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
               <h4 className="text-lg font-medium mb-4 text-gray-200">Performance Data</h4>
               
               <div className="mb-4">
-                <label htmlFor="droneOverallSystemHealthStatus" className="block text-gray-300 font-medium mb-2">System Health Status</label>
+                <label htmlFor="systemHealthStatus" className="block text-gray-300 font-medium mb-2">System Health Status</label>
                 <select
-                  id="droneOverallSystemHealthStatus"
-                  name="droneOverallSystemHealthStatus"
-                  value={formData.droneOverallSystemHealthStatus}
+                  id="systemHealthStatus"
+                  name="systemHealthStatus"
+                  value={formData.systemHealthStatus}
                   onChange={handleChange}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                 >
@@ -515,7 +527,7 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label htmlFor="weightKgBefore" className="block text-gray-300 font-medium mb-2">Weight Before (kg)</label>
                   <input
@@ -541,7 +553,7 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-white"
                   />
                 </div>
-              </div>
+              </div> */}
               
               <div className="mb-4">
                 <label htmlFor="fuelConsumptionL" className="block text-gray-300 font-medium mb-2">Fuel Consumption (L)</label>
@@ -578,7 +590,7 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 font-sans bg-gray-900 text-gray-200">
+    <div className=" mx-auto px-4 py-8 font-sans bg-gray-900 text-gray-200">
       {/* Progress Steps */}
       <div className="relative flex justify-between mb-10">
         {/* Progress Line */}
@@ -588,7 +600,7 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
         {SECTIONS.map((section, index) => (
           <div 
             key={index} 
-            className={`relative flex flex-col items-center cursor-pointer z-10 transition-all duration-300`}
+            className={`relative flex flex-col items-center cursor-pointer transition-all duration-300`}
             onClick={() => setCurrentSection(index)}
           >
             <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 
@@ -601,7 +613,7 @@ const FlightLogForm = ({ onSubmit, initialData = {} }) => {
             >
               {index + 1}
             </div>
-            <div className={`mt-2 text-sm font-medium ${index === currentSection ? 'text-black' : 'text-gray-600'} 
+            <div className={`mt-2 text-sm font-medium ${index === currentSection ? 'text-yellow-500' : 'text-gray-600'} 
               hidden sm:block`}
             >
               {section}
