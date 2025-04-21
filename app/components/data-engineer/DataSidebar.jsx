@@ -51,11 +51,11 @@ export default function DataSidebar() {
       href: "/data-engineer/view-flight-logs",
       icon: <ListFilter className="w-5 h-5" />,
     },
-    {
-      label: "View Telemetry",
-      href: "/data-engineer/view-telemetry",
-      icon: <LineChart className="w-5 h-5" />,
-    },
+    // {
+    //   label: "View Telemetry",
+    //   href: "/data-engineer/view-telemetry",
+    //   icon: <LineChart className="w-5 h-5" />,
+    // },
     {
       label: "Visualize Data",
       href: "/data-engineer/visualize-data",

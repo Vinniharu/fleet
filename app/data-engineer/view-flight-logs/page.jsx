@@ -1,16 +1,47 @@
 "use client";
-import React, { useState } from 'react';
-import droneFlightData from '@/lib/dummyFlightLogs';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DataDashboard from '@/app/components/data-engineer/DataDashboard';
 import ProtectedRoute from '@/app/components/auth/ProtectedRoute';
+import { TableSkeleton, StatsSkeleton } from '@/app/components/ui/SkeletonLoader';
 
 const ViewFlightLogs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'timestamp', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'flightTimestamp', direction: 'desc' });
   const [selectedLog, setSelectedLog] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [flightLogs, setFlightLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFlightLogs = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`https://www.briechuas.com/flmgt/flight-logs`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${JSON.parse(sessionStorage.getItem('accessToken'))}`
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setFlightLogs(data);
+        console.log(data);
+      } catch (error) {
+        console.error('Error fetching flight logs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFlightLogs();
+  }, []);
 
   // Handle search input change
   const handleSearchChange = (e) => {
@@ -56,15 +87,21 @@ const ViewFlightLogs = () => {
     setSelectedLog(null);
   };
 
+  // Format flight time to display minutes
+  const formatFlightTime = (minutes) => {
+    if (!minutes && minutes !== 0) return 'N/A';
+    return `${minutes} min`;
+  };
+
   // Filter and sort the flight logs
-  const filteredAndSortedLogs = droneFlightData
+  const filteredAndSortedLogs = flightLogs
     .filter(log => {
       // Search filter
       const searchMatch = searchTerm === '' || 
         log.missionCoordinator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.nameOfAircraft.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.aircraftName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.missionObjective.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        formatDate(log.timestamp).toLowerCase().includes(searchTerm.toLowerCase());
+        formatDate(log.flightTimestamp).toLowerCase().includes(searchTerm.toLowerCase());
       
       // Status filter
       const statusMatch = statusFilter === '' || log.status === statusFilter;
@@ -98,6 +135,7 @@ const ViewFlightLogs = () => {
               value={searchTerm}
               onChange={handleSearchChange}
               className="w-full px-3 py-2 border border-gray-700 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              disabled={isLoading}
             />
           </div>
           
@@ -108,6 +146,7 @@ const ViewFlightLogs = () => {
               value={statusFilter}
               onChange={handleStatusFilterChange}
               className="w-full px-3 py-2 border border-gray-700 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              disabled={isLoading}
             >
               <option value="">All Statuses</option>
               <option value="Pending">Pending</option>
@@ -119,11 +158,12 @@ const ViewFlightLogs = () => {
           
           <div className="w-full md:w-1/4 flex items-end">
             <button
-              className="w-full bg-yellow-500 text-black px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors"
+              className="w-full bg-yellow-500 text-black px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:pointer-events-none"
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('');
               }}
+              disabled={isLoading}
             >
               Reset Filters
             </button>
@@ -132,138 +172,150 @@ const ViewFlightLogs = () => {
       </div>
       
       {/* Results summary */}
-      <div className="mb-4">
-        <p className="text-gray-400">
-          Showing {filteredAndSortedLogs.length} of {droneFlightData.length} flight logs
-        </p>
-      </div>
+      {!isLoading && (
+        <div className="mb-4">
+          <p className="text-gray-400">
+            Showing {filteredAndSortedLogs.length} of {flightLogs.length} flight logs
+          </p>
+        </div>
+      )}
       
-      {/* Flight logs table */}
-      <div className="bg-gray-900 rounded-lg overflow-hidden border border-yellow-500/20 shadow-lg">
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead className="bg-gray-700">
-            <tr>
-              <th 
-                scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => requestSort('timestamp')}
-              >
-                Date/Time
-                {sortConfig.key === 'timestamp' && (
-                  <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
-                )}
-              </th>
-              <th 
-                scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => requestSort('missionCoordinator')}
-              >
-                Coordinator
-                {sortConfig.key === 'missionCoordinator' && (
-                  <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
-                )}
-              </th>
-              <th 
-                scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => requestSort('nameOfAircraft')}
-              >
-                Aircraft
-                {sortConfig.key === 'nameOfAircraft' && (
-                  <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
-                )}
-              </th>
-              <th 
-                scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => requestSort('missionObjective')}
-              >
-                Mission Objective
-                {sortConfig.key === 'missionObjective' && (
-                  <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
-                )}
-              </th>
-              <th 
-                scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => requestSort('status')}
-              >
-                Status
-                {sortConfig.key === 'status' && (
-                  <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
-                )}
-              </th>
-              <th 
-                scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => requestSort('flightTime')}
-              >
-                Flight Time
-                {sortConfig.key === 'flightTime' && (
-                  <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
-                )}
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-700 bg-gray-900/70">
-            {filteredAndSortedLogs.map((log, index) => (
-              <tr key={index} className="hover:bg-gray-700">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  {formatDate(log.timestamp)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  {log.missionCoordinator}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  {log.nameOfAircraft}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  {log.missionObjective}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${log.status === 'Completed' ? 'bg-green-900 text-green-300' : 
-                      log.status === 'In Progress' ? 'bg-yellow-900 text-yellow-300' : 
-                      log.status === 'Aborted' ? 'bg-red-900 text-red-300' : 
-                      'bg-yellow-900 text-yellow-300'}`}
+      {/* Loading state */}
+      {isLoading ? (
+        <>
+          <StatsSkeleton />
+          <TableSkeleton columns={7} rows={5} />
+        </>
+      ) : (
+        <>
+          {/* Flight logs table */}
+          <div className="bg-gray-900 rounded-lg overflow-hidden border border-yellow-500/20 shadow-lg">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-700">
+                <tr>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('flightTimestamp')}
                   >
-                    {log.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  {log.flightTime}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button 
-                    className="text-yellow-400 hover:text-yellow-300 m-auto"
-                    onClick={() => handleViewDetails(log)}
+                    Date/Time
+                    {sortConfig.key === 'flightTimestamp' && (
+                      <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('missionCoordinator')}
                   >
-                    View
-                  </button>
-                </td>
-              </tr>
-            ))}
-            
-            {filteredAndSortedLogs.length === 0 && (
-              <tr>
-                <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-400">
-                  No flight logs found matching your filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      
-      {/* Create New Log Button */}
-      <div className="mt-6">
-        <Link href="/data-collection/create-flight-logs" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-          Create New Flight Log
-        </Link>
-      </div>
+                    Coordinator
+                    {sortConfig.key === 'missionCoordinator' && (
+                      <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('aircraftName')}
+                  >
+                    Aircraft
+                    {sortConfig.key === 'aircraftName' && (
+                      <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('missionObjective')}
+                  >
+                    Mission Objective
+                    {sortConfig.key === 'missionObjective' && (
+                      <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('status')}
+                  >
+                    Status
+                    {sortConfig.key === 'status' && (
+                      <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('flightTimeMinutes')}
+                  >
+                    Flight Time
+                    {sortConfig.key === 'flightTimeMinutes' && (
+                      <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
+                    )}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700 bg-gray-900/70">
+                {filteredAndSortedLogs.map((log, index) => (
+                  <tr key={index} className="hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {formatDate(log.flightTimestamp)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {log.missionCoordinator}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {log.aircraftName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {log.missionObjective}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${log.status === 'Completed' ? 'bg-green-900 text-green-300' : 
+                          log.status === 'In Progress' ? 'bg-yellow-900 text-yellow-300' : 
+                          log.status === 'Aborted' ? 'bg-red-900 text-red-300' : 
+                          'bg-yellow-900 text-yellow-300'}`}
+                      >
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {formatFlightTime(log.flightTimeMinutes)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button 
+                        className="text-yellow-400 hover:text-yellow-300 m-auto"
+                        onClick={() => handleViewDetails(log)}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                
+                {filteredAndSortedLogs.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-400">
+                      No flight logs found matching your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Create New Log Button */}
+          <div className="mt-6">
+            <Link href="/data-collection/create-flight-logs" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+              Create New Flight Log
+            </Link>
+          </div>
+        </>
+      )}
       
       {/* Flight Log Details Modal */}
       {isDetailModalOpen && selectedLog && (
@@ -271,7 +323,7 @@ const ViewFlightLogs = () => {
           <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto text-gray-200">
             <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
               <h3 className="text-xl font-semibold text-yellow-400">
-                Flight Log Details: {selectedLog.nameOfAircraft}
+                Flight Log Details: {selectedLog.aircraftName}
               </h3>
               <button 
                 onClick={closeDetailModal}
@@ -290,8 +342,12 @@ const ViewFlightLogs = () => {
                   <h4 className="text-lg font-medium mb-3 border-b pb-2 border-yellow-500 text-yellow-400">Basic Information</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="font-medium">Date/Time:</span>
-                      <span>{formatDate(selectedLog.timestamp)}</span>
+                      <span className="font-medium">Log Created:</span>
+                      <span>{formatDate(selectedLog.logTimestamp)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Flight Date/Time:</span>
+                      <span>{formatDate(selectedLog.flightTimestamp)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Mission Coordinator:</span>
@@ -299,7 +355,7 @@ const ViewFlightLogs = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Aircraft:</span>
-                      <span>{selectedLog.nameOfAircraft}</span>
+                      <span>{selectedLog.aircraftName}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Status:</span>
@@ -318,7 +374,7 @@ const ViewFlightLogs = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Flight Time:</span>
-                      <span>{selectedLog.flightTime}</span>
+                      <span>{formatFlightTime(selectedLog.flightTimeMinutes)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Flight Distance:</span>
@@ -326,7 +382,7 @@ const ViewFlightLogs = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Date:</span>
-                      <span>{selectedLog.month} {selectedLog.year}, Week {selectedLog.week}</span>
+                      <span>{selectedLog.flightMonth}/{selectedLog.flightYear}, Week {selectedLog.flightWeek}</span>
                     </div>
                     <div className="mt-2">
                       <span className="font-medium block mb-1">Description:</span>
@@ -351,7 +407,7 @@ const ViewFlightLogs = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Wind Speed:</span>
-                      <span>{selectedLog.windSpeedMS} m/s</span>
+                      <span>{selectedLog.windSpeedMps} m/s</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Temperature:</span>
@@ -374,8 +430,8 @@ const ViewFlightLogs = () => {
                           <span className="font-medium">3S Battery (Qty: {selectedLog.battery3sQty}):</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span>Takeoff: {selectedLog.batteryTakeoffVoltage3s}V</span>
-                          <span>Landing: {selectedLog.batteryLandingVoltage3s}V</span>
+                          <span>Takeoff: {selectedLog.batteryTakeoff3sV}V</span>
+                          <span>Landing: {selectedLog.batteryLanding3sV}V</span>
                         </div>
                       </div>
                     )}
@@ -386,8 +442,8 @@ const ViewFlightLogs = () => {
                           <span className="font-medium">7S Battery (Qty: {selectedLog.battery7sQty}):</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span>Takeoff: {selectedLog.batteryTakeoffVoltage7s}V</span>
-                          <span>Landing: {selectedLog.batteryLandingVoltage7s}V</span>
+                          <span>Takeoff: {selectedLog.batteryTakeoff7sV}V</span>
+                          <span>Landing: {selectedLog.batteryLanding7sV}V</span>
                         </div>
                       </div>
                     )}
@@ -398,8 +454,8 @@ const ViewFlightLogs = () => {
                           <span className="font-medium">14S Battery (Qty: {selectedLog.battery14sQty}):</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span>Takeoff: {selectedLog.batteryTakeoffVoltage14s}V</span>
-                          <span>Landing: {selectedLog.batteryLandingVoltage14s}V</span>
+                          <span>Takeoff: {selectedLog.batteryTakeoff14sV}V</span>
+                          <span>Landing: {selectedLog.batteryLanding14sV}V</span>
                         </div>
                       </div>
                     )}
@@ -417,23 +473,7 @@ const ViewFlightLogs = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="font-medium">System Health:</span>
-                      <span>{selectedLog.droneOverallSystemHealthStatus}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Weight Before:</span>
-                      <span>{selectedLog.weightKg.before} kg</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Weight After:</span>
-                      <span>{selectedLog.weightKg.after} kg</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Fuel Level:</span>
-                      <span>{selectedLog.fuelLevelL} L</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Fuel Consumption:</span>
-                      <span>{selectedLog.fuelConsumptionL} L</span>
+                      <span>{selectedLog.systemHealthStatus}</span>
                     </div>
                     <div className="mt-2">
                       <span className="font-medium block mb-1">Comments:</span>
