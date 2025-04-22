@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useNotification } from '@/app/context/NotificationContext';
+import authService from '@/lib/authService';
 
 export default function CreateUserForm() {
   const [formData, setFormData] = useState({
@@ -14,7 +15,6 @@ export default function CreateUserForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const { createUser } = useAuth();
   const { showSuccess, showError } = useNotification();
 
   const handleChange = (e) => {
@@ -32,7 +32,7 @@ export default function CreateUserForm() {
     setLoading(true);
 
     try {
-      await createUser(formData);
+      await authService.createUser(formData);
       
       // Set success state
       const successMessage = 'User created successfully!';
